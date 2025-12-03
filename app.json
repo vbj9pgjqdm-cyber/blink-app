@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "blink",
+    "slug": "blink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icons/app-icon.png",
+    "plugins": [
+      "expo-asset"
+    ],
+    "android": {
+      "package": "com.martinstanley.blink",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
+        "android.permission.VIBRATE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/app-icon.png",
+        "backgroundColor": "#0A1A33"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.martinstanley.blink",
+      "supportsTablet": false,
+      "icon": "./assets/icons/app-icon.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow blink to access your camera",
+        "NSMicrophoneUsageDescription": "Allow blink to access your microphone"
+      }
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a12710bd-ae03-4d39-b4d3-3cd8e9b9db29"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sessions/{sessionId} {
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.ownerUid == request.auth.uid
+        || resource.data.joinedUid == request.auth.uid
+      );
+      allow update: if request.auth != null && (
+        resource.data.ownerUid == request.auth.uid
+        || request.auth.uid == resource.data.joinedUid
+      );
+      allow delete: if false;
+      match /messages/{messageId} {
+        allow create: if request.auth != null && get(/databases/$(database)/documents/sessions/$(sessionId)).data.deleted == false;
+        allow read: if request.auth != null && (
+          get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid == request.auth.uid
+          || get(/databases/$(database)/documents/sessions/$(sessionId)).data.joinedUid == request.auth.uid
+        );
+        allow update, delete: if false;
+      }
+    }
+  }
+}
