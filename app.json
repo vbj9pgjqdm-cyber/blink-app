@@ -9,12 +9,7 @@
 
     "plugins": [
       "expo-asset",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png"
-        }
-      ]
+      "expo-notifications"
     ],
 
     "android": {
