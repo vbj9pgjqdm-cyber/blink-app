@@ -21,6 +21,13 @@ import {
   ScrollView,
 } from "react-native";
 
+// Only load expo-notifications on Android so iOS doesn't crash
+let Notifications = null;
+if (Platform.OS === "android") {
+  // require at runtime – only executed on Android
+  Notifications = require("expo-notifications");
+}
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -32,7 +39,6 @@ import { useFonts } from "expo-font";
 import { firebaseConfig } from "./firebase.config";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
-import * as Notifications from "expo-notifications";
 
 // === ASSETS ===
 const homeQrImage = require("./assets/home-qr.png");
@@ -142,7 +148,6 @@ export default function App() {
     "Poppins-Regular": require("./assets/fonts/Poppins-Regular.ttf"),
   });
 
-
   // Modes:
   // home | scan | show | connecting | chat | activeList (temporary) | permanentList
   const [mode, setMode] = useState("home");
@@ -150,17 +155,16 @@ export default function App() {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
-  
+
+  const [sessionId, setSessionId] = useState(null);
+  const [sessionRole, setSessionRole] = useState(null); // "owner" | "guest" | null
+  const [user, setUser] = useState(null);
+
   // PUSH TOKENS - run whenever we know the session and my role
   useEffect(() => {
     if (!sessionId || !sessionRole) return;
     registerForPushNotifications();
   }, [sessionId, sessionRole]);
-
-
-  const [sessionId, setSessionId] = useState(null);
-  const [sessionRole, setSessionRole] = useState(null); // "owner" | "guest" | null
-  const [user, setUser] = useState(null);
 
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
@@ -215,6 +219,12 @@ export default function App() {
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
+      if (messagesUnsub.current) {
+        messagesUnsub.current();
+      }
+      if (sessionMetaUnsub.current) {
+        sessionMetaUnsub.current();
+      }
     };
   }, []);
 
@@ -232,8 +242,10 @@ export default function App() {
 
   // ---------- CAMERA PERMISSION ----------
   useEffect(() => {
-    if (!permission) requestPermission();
-  }, [permission]);
+    if (!permission) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
 
   // ---------- LOAD TEMPORARY CHATS ON BOOT ----------
   useEffect(() => {
@@ -388,31 +400,42 @@ export default function App() {
   }
 
   async function registerForPushNotifications() {
-  try {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") return;
+    try {
+      // Ignore iOS for now
+      if (Platform.OS === "ios" || !Notifications) {
+        console.log("Notifications disabled on this platform.");
+        return;
+      }
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
-    const expoToken = tokenData.data;
+      // Request Android notification permission
+      const { status } = await Notifications.requestPermissionsAsync();
+      console.log("Notification permission status:", status);
+      if (status !== "granted") return;
 
-    if (!expoToken || !auth.currentUser) return;
+      // Get Expo push token
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const expoToken = tokenData.data;
+      console.log("Expo Android token:", expoToken);
 
-    // Determine my role for this session
-    if (!sessionId || !sessionRole) return; 
+      if (!expoToken) return;
+      if (!auth.currentUser) return;
+      if (!sessionId || !sessionRole) return;
 
-    // Save token inside Firestore session
-    await db.collection("sessions").doc(sessionId).set(
-      {
-        pushTokens: {
-          [sessionRole]: expoToken,
+      // Save token inside Firestore session
+      await db.collection("sessions").doc(sessionId).set(
+        {
+          pushTokens: {
+            [sessionRole]: expoToken, // owner or guest
+          },
         },
-      },
-      { merge: true }
-    );
-  } catch (err) {
-    console.log("Push token error:", err);
+        { merge: true }
+      );
+
+      console.log("Saved Android push token for:", sessionRole);
+    } catch (err) {
+      console.log("Push token error:", err);
+    }
   }
-}
 
   // ---------- LOAD LOCAL NAME + ICON WHEN SESSION CHANGES ----------
   useEffect(() => {
@@ -711,6 +734,7 @@ export default function App() {
       const uid = auth.currentUser.uid;
       const ref = db.collection("sessions").doc(sid);
       const expires = Date.now() + 60 * 60 * 1000;
+
       await db.collection("sessions").doc(sid).set(
         {
           names: {
@@ -788,6 +812,7 @@ export default function App() {
         setMode("home");
         return;
       }
+
       await db.collection("sessions").doc(sid).set(
         {
           names: {
@@ -1717,15 +1742,17 @@ export default function App() {
                           if (sessionId) {
                             await saveLocalName(sessionId, name);
                             // Save my assigned name to Firestore
-                            await db.collection("sessions").doc(sessionId).set(
-                              {
-                                names: {
-                                  [sessionRole]: name,
+                            await db
+                              .collection("sessions")
+                              .doc(sessionId)
+                              .set(
+                                {
+                                  names: {
+                                    [sessionRole]: name,
+                                  },
                                 },
-                              },
-                              { merge: true }
-                          );
-
+                                { merge: true }
+                              );
                           }
                           setEditingName(false);
                         }}

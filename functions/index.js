@@ -30,7 +30,8 @@ exports.sendNotificationOnNewMessage = onDocumentCreated(
 
     // Lookup Expo push token
     const pushTokens = sessionData.pushTokens || {};
-    const expoToken = pushTokens[receiverRole];
+    const expoToken =
+    pushTokens[`android_${receiverRole}`] || null;
 
     if (!expoToken) {
       console.log("❌ No Expo push token for receiver");

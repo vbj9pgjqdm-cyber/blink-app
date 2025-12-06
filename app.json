@@ -6,11 +6,23 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icons/app-icon.png",
+
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png"
+        }
+      ]
     ],
+
     "android": {
       "package": "com.martinstanley.blink",
+
+      // 👇 REQUIRED FOR ANDROID PUSH NOTIFICATIONS
+      "googleServicesFile": "./android/app/google-services.json",
+
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -22,6 +34,7 @@
         "backgroundColor": "#0A1A33"
       }
     },
+
     "ios": {
       "bundleIdentifier": "com.martinstanley.blink",
       "supportsTablet": false,
@@ -31,9 +44,9 @@
         "NSMicrophoneUsageDescription": "Allow blink to access your microphone"
       }
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+
+    "assetBundlePatterns": ["**/*"],
+
     "extra": {
       "eas": {
         "projectId": "a12710bd-ae03-4d39-b4d3-3cd8e9b9db29"
