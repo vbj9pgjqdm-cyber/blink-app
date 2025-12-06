@@ -20,7 +20,6 @@
     "android": {
       "package": "com.martinstanley.blink",
 
-      // 👇 REQUIRED FOR ANDROID PUSH NOTIFICATIONS
       "googleServicesFile": "./android/app/google-services.json",
 
       "permissions": [
